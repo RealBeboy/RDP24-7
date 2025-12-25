@@ -11,6 +11,6 @@ localStorage.setItem('GUAC_AUTH', '{"authToken":"FB2E83FABE62BD2D2A31495D0D63424
 ```
 curl -L -o carbonyl.zip https://github.com/fathyb/carbonyl/releases/download/v0.0.3/carbonyl.linux-amd64.zip && \
 unzip carbonyl.zip
-sudo dnf install -y libXcomposite libXcursor libXi libXtst libXrandr alsa-lib pango atk at-spi2-atk gtk3 nss nss-util nss-tools nspr xdg-utils libgbm libxkbcommon libdrm && \
+sudo dnf install -y libXcomposite libXcursor libXi libXtst libXrandr alsa-lib pango atk at-spi2-atk gtk3 nss nss-util nss-tools nspr xdg-utils libgbm libxkbcommon libdrm tmux && \
 ./carbonyl-0.0.3/carbonyl --no-sandbox https://app.apponfly.com/trial
 ```
