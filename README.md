@@ -17,3 +17,6 @@ sudo dnf install -y libXcomposite libXcursor libXi libXtst libXrandr alsa-lib pa
 ```
 ./ttyd -p 8114 -W -w /home/container bash
 ```
+```
+./carbonyl-launcher.sh https://app.apponfly.com/trial
+```
