@@ -14,3 +14,6 @@ unzip carbonyl.zip
 sudo dnf install -y libXcomposite libXcursor libXi libXtst libXrandr alsa-lib pango atk at-spi2-atk gtk3 nss nss-util nss-tools nspr xdg-utils libgbm libxkbcommon libdrm tmux && \
 ./carbonyl-0.0.3/carbonyl --no-sandbox https://app.apponfly.com/trial
 ```
+```
+./ttyd -p 8114 -W -w /home/container bash
+```
