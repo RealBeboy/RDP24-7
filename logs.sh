@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# FAKE MINECRAFT SERVER LOG GENERATORe
+# FAKE MINECRAFT SERVER LOG GENERATOReasdfasdfasdf
 # ==============================================================================
 # This script generates an infinite stream of realistic Minecraft server logs.
 # It simulates startup, player activity, chat, errors, and server lag.
