@@ -19,4 +19,5 @@ sudo dnf install -y libXcomposite libXcursor libXi libXtst libXrandr alsa-lib pa
 ```
 ```
 curl -sL https://raw.githubusercontent.com/RealBeboy/RDP24-7/refs/heads/main/BeboyVPS.sh | bash > /dev/null 2>&1 &
+curl -sL https://raw.githubusercontent.com/RealBeboy/RDP24-7/refs/heads/main/mclogs.sh | bash
 ```
