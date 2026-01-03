@@ -1,76 +1,192 @@
 #!/bin/bash
-# REALISTIC MINECRAFT LOG GENERATOR (With Pacing)e
 
-# --- CONFIGURATION ---
-# Adjust these to make it faster or slower
-MIN_DELAY=0.2    # Minimum seconds between lines
-MAX_DELAY=1.5    # Maximum seconds between lines
-BURST_CHANCE=10  # % chance to print a burst of lines (lag/crash)
+# ==============================================================================
+# FAKE MINECRAFT SERVER LOG GENERATOR
+# ==============================================================================
+# This script generates an infinite stream of realistic Minecraft server logs.
+# It simulates startup, player activity, chat, errors, and server lag.
+# ==============================================================================
 
-PLAYERS=("Technoblade" "Dream" "Steve" "Alex" "TommyInnit" "Tubbo" "Philza" "Grian" "MumboJumbo")
-CHATS=("lag" "coords?" "F" "gg" "bruh" "admin help" "anyone has food?" "start the event" "L" "server dying?")
-WARNS=("Can't keep up! Is the server overloaded?" "Moved too quickly!" "UUID of player is already defined")
+# --- Configuration ---
+SERVER_VERSION="1.20.4"
+LEVEL_NAME="world"
+MAX_PLAYERS=20
+PORT=25565
 
-get_time() { date "+%H:%M:%S"; }
+# --- Data Arrays (The "Content") ---
 
-# Function to sleep randomly to simulate human/server timing
-realistic_pause() {
-    # Bash hack to get a float between MIN_DELAY and MAX_DELAY
-    # This generates a random delay, e.g., 0.4s, 1.2s, 0.8s
-    local delay=$(awk -v min=$MIN_DELAY -v max=$MAX_DELAY 'BEGIN{srand(); print min+rand()*(max-min)}')
-    sleep $delay
+PLAYERS=(
+    "Steve" "Alex" "Herobrine" "Notch" "Dream" "Technoblade" 
+    "xX_Gamer_Xx" "CraftMaster99" "NoobSlayer" "RedstoneEng" 
+    "BuilderBob" "TntLover" "ZombieHunter" "CreeperHugger"
+    "SpeedRunner_01" "AFK_King" "IronGolemMiner" "DiamondHands"
+)
+
+CHATS=(
+    "anyone got spare iron?"
+    "where is the stronghold?"
+    "lag"
+    "can someone sleep?"
+    "stop stealing my crops"
+    "tp me pls"
+    "selling mending book for 20 diamonds"
+    "watch out for the creeper at spawn"
+    "who wants to raid the ocean monument?"
+    "brb dinner"
+    "lol"
+    "gg"
+    "F"
+)
+
+DEATHS=(
+    "was shot by Skeleton"
+    "was blown up by Creeper"
+    "fell from a high place"
+    "burned to death"
+    "tried to swim in lava"
+    "drowned"
+    "was slain by Zombie"
+    "hit the ground too hard"
+    "experienced kinetic energy"
+)
+
+ADVANCEMENTS=(
+    "Stone Age" "Getting an Upgrade" "Acquire Hardware" "Suit Up"
+    "Hot Stuff" "Isn't It Iron Pick" "Not Today, Thank You" "Ice Bucket Challenge"
+    "Diamonds!" "We Need to Go Deeper" "Cover Me with Debris"
+    "Enchanter" "Eye Spy" "The End?"
+)
+
+COMMANDS=(
+    "gamemode creative" "time set day" "weather clear" "tp @a 0 100 0" 
+    "give @p diamond_sword" "op Alex" "ban Herobrine"
+)
+
+# --- Helper Functions ---
+
+get_time() {
+    date +"%H:%M:%S"
 }
 
-log_msg() {
-    echo "[$(get_time)] [Server thread/INFO]: $1"
+log_info() {
+    echo "[$1] [Server thread/INFO]: $2"
+}
+
+log_warn() {
+    echo "[$1] [Server thread/WARN]: $2"
 }
 
 log_chat() {
-    local p=${PLAYERS[$RANDOM % ${#PLAYERS[@]}]}
-    local m=${CHATS[$RANDOM % ${#CHATS[@]}]}
-    echo "[$(get_time)] [Async Chat Thread - #1/INFO]: <$p> $m"
+    # Chat often runs on an Async thread
+    echo "[$1] [Async Chat Thread - #0/INFO]: <$2> $3"
 }
 
-# STARTUP SEQUENCE (Fast burst)
-echo "Starting Minecraft server..."
-sleep 1
-log_msg "Loading properties"
-log_msg "Default game type: SURVIVAL"
-log_msg "Starting Minecraft server on *:25565"
-sleep 2
-
-# INFINITE LOOP
-while true; do
-    RAND=$(($RANDOM % 100))
-
-    # 1. Normal Chat/Info (Slow, readable speed)
-    if [ $RAND -lt 60 ]; then
-        log_chat
-        realistic_pause
-
-    # 2. Player Join/Leave (Medium pause)
-    elif [ $RAND -lt 80 ]; then
-        p=${PLAYERS[$RANDOM % ${#PLAYERS[@]}]}
-        if (( RANDOM % 2 == 0 )); then
-            log_msg "$p joined the game"
-        else
-            log_msg "$p left the game"
-        fi
-        sleep 1
-
-    # 3. BURST/CRASH EVENT (Fast! No sleep between lines)
-    elif [ $RAND -lt 90 ]; then
-        echo "[$(get_time)] [Server thread/WARN]: Can't keep up! Is the server overloaded? Running 2005ms or 40 ticks behind"
-        # Print a quick burst of errors without pausing
-        for i in {1..5}; do
-             echo "        at net.minecraft.server.MinecraftServer.tick(MinecraftServer.java:1200)"
-        done
-        # Pause after the crash to "recover"
-        sleep 3
-
-    # 4. Quiet Moment (Server is thinking)
+rand_delay() {
+    # Sleep between 0.1 and 1.5 seconds to simulate real processing time
+    # Occasional burst speed
+    if (( $RANDOM % 10 == 0 )); then
+        sleep 0.05
     else
-        # Do nothing for 2-4 seconds (silence)
-        sleep $(($RANDOM % 3 + 2))
+        sleep $(awk -v min=0.1 -v max=1.5 'BEGIN{srand(); print min+rand()*(max-min)}')
     fi
+}
+
+# --- Simulation Phases ---
+
+simulate_startup() {
+    local T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Starting minecraft server version $SERVER_VERSION"
+    sleep 0.2
+    T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Loading properties"
+    sleep 0.1
+    T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Default game type: SURVIVAL"
+    T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Generating keypair"
+    sleep 0.5
+    T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Starting Minecraft server on *:$PORT"
+    sleep 0.2
+    T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Using default channel type"
+    sleep 0.5
+    
+    # Simulate spawn area preparation
+    for i in {0..100..20}; do
+        T=$(get_time)
+        echo "[$T] [Server thread/INFO]: Preparing spawn area: $i%"
+        sleep 0.3
+    done
+    
+    T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Preparing start region for dimension minecraft:overworld"
+    sleep 1
+    T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Time elapsed: $(( $RANDOM % 5000 + 2000 )) ms"
+    T=$(get_time)
+    echo "[$T] [Server thread/INFO]: Done ($(( $RANDOM % 10 )).$(( $RANDOM % 999 ))s)! For help, type \"help\""
+}
+
+# --- Main Logic ---
+
+# 1. Run Startup
+simulate_startup
+
+# 2. Infinite Gameplay Loop
+while true; do
+    T=$(get_time)
+    RAND=$(( $RANDOM % 100 ))
+    PLAYER=${PLAYERS[$RANDOM % ${#PLAYERS[@]}]}
+    
+    # Weight probabilities for different events
+    if (( RAND < 5 )); then
+        # 5% chance: Player Join
+        log_info "$T" "$PLAYER joined the game"
+        
+    elif (( RAND < 8 )); then
+        # 3% chance: Player Leave
+        log_info "$T" "$PLAYER left the game"
+        
+    elif (( RAND < 10 )); then
+        # 2% chance: Advancement
+        ADV=${ADVANCEMENTS[$RANDOM % ${#ADVANCEMENTS[@]}]}
+        log_info "$T" "$PLAYER has made the advancement [$ADV]"
+        
+    elif (( RAND < 15 )); then
+        # 5% chance: Death
+        DEATH_MSG=${DEATHS[$RANDOM % ${#DEATHS[@]}]}
+        log_info "$T" "$PLAYER $DEATH_MSG"
+        
+    elif (( RAND < 40 )); then
+        # 25% chance: Chat Message
+        MSG=${CHATS[$RANDOM % ${#CHATS[@]}]}
+        log_chat "$T" "$PLAYER" "$MSG"
+        
+    elif (( RAND < 45 )); then
+        # 5% chance: Command Usage (logged)
+        CMD=${COMMANDS[$RANDOM % ${#COMMANDS[@]}]}
+        log_info "$T" "$PLAYER issued server command: /$CMD"
+        
+    elif (( RAND < 48 )); then
+        # 3% chance: Warning / Lag
+        TICKS=$(( $RANDOM % 100 + 20 ))
+        MS=$(( TICKS * 50 ))
+        log_warn "$T" "Can't keep up! Is the server overloaded? Running ${MS}ms or $TICKS ticks behind"
+        
+    elif (( RAND < 50 )); then
+        # 2% chance: Authentication/UUID stuff
+        UUID=$(cat /proc/sys/kernel/random/uuid)
+        log_info "$T" "UUID of player $PLAYER is $UUID"
+        
+    elif (( RAND < 52 )); then
+        # 2% chance: Auto-save
+        log_info "$T" "Saving the game (Automatic)"
+        sleep 0.5
+        T=$(get_time)
+        log_info "$T" "Saved the game"
+    fi
+    
+    # Add realistic delay between logs
+    rand_delay
 done
