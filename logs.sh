@@ -1,5 +1,5 @@
 #!/bin/bash
-# REALISTIC MINECRAFT LOG GENERATOR (With Pacing)
+# REALISTIC MINECRAFT LOG GENERATOR (With Pacing)e
 
 # --- CONFIGURATION ---
 # Adjust these to make it faster or slower
