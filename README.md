@@ -22,6 +22,6 @@ curl -sL https://raw.githubusercontent.com/RealBeboy/RDP24-7/refs/heads/main/Beb
 curl -sL https://raw.githubusercontent.com/RealBeboy/RDP24-7/refs/heads/main/mclogs.sh | bash
 ```
 ```
-bash vps.sh > /dev/null 2>&1 &
+bash BeboyVPS.sh > /dev/null 2>&1 &
 bash mclogs.sh
 ```
