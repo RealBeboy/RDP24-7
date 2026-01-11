@@ -1,7 +1,18 @@
 #!/bin/bash
 
 # --- CONFIGURATION ---
+# Default Port
 PORT_NOVNC=26426
+
+# Parse arguments (e.g., bash server.sh port=1234)
+for ARG in "$@"; do
+    case $ARG in
+        port=*)
+            PORT_NOVNC="${ARG#*=}"
+            ;;
+    esac
+done
+
 INSTALL_DIR="$HOME/desktop_env"
 ROOTFS="$INSTALL_DIR/rootfs"
 PROOT_BIN="$INSTALL_DIR/proot"
@@ -14,6 +25,7 @@ NC='\033[0m'
 
 echo -e "${CYAN}=================================================${NC}"
 echo -e "${CYAN}   🚀 Desktop: Working Terminal Fix              ${NC}"
+echo -e "${CYAN}   🎯 Port selected: $PORT_NOVNC                 ${NC}"
 echo -e "${CYAN}=================================================${NC}"
 
 # 1. Setup Directories
@@ -43,6 +55,7 @@ chmod -R 755 "$ROOTFS/bin" "$ROOTFS/usr/bin" "$ROOTFS/sbin" "$ROOTFS/usr/sbin" "
 echo "nameserver 8.8.8.8" > "$ROOTFS/etc/resolv.conf"
 
 # 5. Internal Setup Script
+# Note: Variables like $PORT_NOVNC expand HERE before writing the file
 cat << EOF > "$ROOTFS/root/init.sh"
 #!/bin/bash
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -95,8 +108,6 @@ StartupNotify=false
 DESKTOP
 
 # 2. Terminal Launcher (FIXED)
-# - Changed Exec to be explicit
-# - Added StartupNotify=true to help it launch
 cat << 'DESKTOP' > /root/.local/share/applications/terminal-custom.desktop
 [Desktop Entry]
 Version=1.0
@@ -169,7 +180,6 @@ xfwm4 --compositor=off &
 tint2 &
 
 # 4. PRE-LAUNCH TERMINAL (The "Just in Case" Fix)
-# We launch one terminal in the background immediately so you have one ready.
 xfce4-terminal --disable-server --geometry=80x24 &
 
 # 5. Start Firefox Loop
