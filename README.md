@@ -18,7 +18,7 @@ sudo dnf install -y libXcomposite libXcursor libXi libXtst libXrandr alsa-lib pa
 ./ttyd -p 8114 -W -w /home/container bash
 ```
 ```
-curl -sL https://raw.githubusercontent.com/RealBeboy/RDP24-7/refs/heads/main/BeboyVPS.sh | bash > /dev/null 2>&1 &
+curl -sL https://raw.githubusercontent.com/RealBeboy/RDP24-7/refs/heads/main/BeboyVPS.sh | bash -s -- port=123 > /dev/null 2>&1 &
 curl -sL https://raw.githubusercontent.com/RealBeboy/RDP24-7/refs/heads/main/mclogs.sh | bash
 ```
 ```
