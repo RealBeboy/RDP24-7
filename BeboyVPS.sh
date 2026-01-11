@@ -1,14 +1,18 @@
 #!/bin/bash
 
 # --- CONFIGURATION ---
-# Default Port
+# Default Values
 PORT_NOVNC=26426
+VNC_PASS="password"
 
-# Parse arguments (e.g., bash server.sh port=1234)
+# Parse arguments (e.g., bash server.sh port=1234 password=secret)
 for ARG in "$@"; do
     case $ARG in
         port=*)
             PORT_NOVNC="${ARG#*=}"
+            ;;
+        password=*)
+            VNC_PASS="${ARG#*=}"
             ;;
     esac
 done
@@ -26,6 +30,7 @@ NC='\033[0m'
 echo -e "${CYAN}=================================================${NC}"
 echo -e "${CYAN}   🚀 Desktop: Working Terminal Fix              ${NC}"
 echo -e "${CYAN}   🎯 Port selected: $PORT_NOVNC                 ${NC}"
+echo -e "${CYAN}   🔑 VNC Password:  $VNC_PASS                   ${NC}"
 echo -e "${CYAN}=================================================${NC}"
 
 # 1. Setup Directories
@@ -55,7 +60,7 @@ chmod -R 755 "$ROOTFS/bin" "$ROOTFS/usr/bin" "$ROOTFS/sbin" "$ROOTFS/usr/sbin" "
 echo "nameserver 8.8.8.8" > "$ROOTFS/etc/resolv.conf"
 
 # 5. Internal Setup Script
-# Note: Variables like $PORT_NOVNC expand HERE before writing the file
+# Variables like $PORT_NOVNC and $VNC_PASS are expanded here before writing the file
 cat << EOF > "$ROOTFS/root/init.sh"
 #!/bin/bash
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -85,11 +90,10 @@ if ! command -v tint2 &> /dev/null; then
 fi
 
 # B. Set VNC Password
+# Only set it if the directory doesn't exist or we want to overwrite it
 mkdir -p /root/.vnc
-if [ ! -f /root/.vnc/passwd ]; then
-    echo "password" | vncpasswd -f > /root/.vnc/passwd
-    chmod 600 /root/.vnc/passwd
-fi
+echo "$VNC_PASS" | vncpasswd -f > /root/.vnc/passwd
+chmod 600 /root/.vnc/passwd
 
 # C. CREATE CUSTOM LAUNCHERS (Fixed Terminal)
 mkdir -p /root/.local/share/applications/
@@ -208,6 +212,7 @@ chmod +x "$ROOTFS/root/init.sh"
 # 6. Launch
 echo -e "${GREEN}[+] Launching...${NC}"
 echo -e "${CYAN}Access: http://(YOUR_IP):$PORT_NOVNC/vnc.html${NC}"
+echo -e "${CYAN}Password: $VNC_PASS${NC}"
 
 export PROOT_NO_SECCOMP=1
 export PROOT_TMP_DIR="$TMP_DIR"
