@@ -5,7 +5,7 @@
 PORT_RDP=3389
 RDP_PASS="password"
 
-# Parse arguments (e.g., bash server.sh port=3390 password=secret)
+# Parse arguments
 for ARG in "$@"; do
     case $ARG in
         port=*)
@@ -25,12 +25,13 @@ TMP_DIR="$INSTALL_DIR/tmp"
 # Colors
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo -e "${CYAN}=================================================${NC}"
-echo -e "${CYAN}   🚀 Desktop: RDP Edition (No Web VNC)          ${NC}"
+echo -e "${CYAN}   🚀 Desktop: RDP Edition (Hard-Stop Fix)       ${NC}"
 echo -e "${CYAN}   🎯 RDP Port:     $PORT_RDP                    ${NC}"
-echo -e "${CYAN}   🔑 Root Password: $RDP_PASS                   ${NC}"
+echo -e "${CYAN}   🔑 Password:     $RDP_PASS                    ${NC}"
 echo -e "${CYAN}=================================================${NC}"
 
 # 1. Setup Directories
@@ -67,7 +68,34 @@ export HOME=/root
 export USER=root
 export DEBIAN_FRONTEND=noninteractive
 
-# A. Install Dependencies
+# --- A. NUCLEAR CLEANUP (Fix for Hard Stops) ---
+echo "${YELLOW}🧹 Force Cleaning previous session leftovers...${NC}"
+
+# 1. Kill any zombie processes inside the container
+pkill -9 -f vnc
+pkill -9 -f Xvnc
+pkill -9 -f xrdp
+pkill -9 -f xrdp-sesman
+
+# 2. Delete ALL Lock Files (This fixes the 'cannot connect' issue)
+# VNC Locks
+rm -rf /tmp/.X1-lock
+rm -rf /tmp/.X11-unix/X1
+rm -rf /root/.vnc/*.pid
+rm -rf /root/.vnc/*.log
+
+# XRDP Locks
+rm -rf /var/run/xrdp/*
+rm -rf /var/run/xrdp.pid
+rm -rf /var/run/xrdp-sesman.pid
+
+# 3. Re-create directories with correct permissions
+mkdir -p /tmp/.X11-unix
+chmod 1777 /tmp/.X11-unix
+mkdir -p /var/run/xrdp
+chmod 777 /var/run/xrdp
+
+# --- B. Install Dependencies ---
 if ! command -v tint2 &> /dev/null; then
     echo "📦 Installing Desktop & RDP Tools..."
     apt-get update
@@ -83,73 +111,49 @@ if ! command -v tint2 &> /dev/null; then
         ttf-wqy-zenhei \
         libgtk-3-0 \
         adwaita-icon-theme-full \
-        sudo
+        sudo \
+        mousepad
     apt-get clean
 fi
 
-# B. Set Passwords (VNC & System Root)
+# --- C. Set Passwords ---
 mkdir -p /root/.vnc
-# Set VNC Password (internal backend)
 echo "$RDP_PASS" | vncpasswd -f > /root/.vnc/passwd
 chmod 600 /root/.vnc/passwd
-# Set Root Password (Required for RDP Login)
 echo "root:$RDP_PASS" | chpasswd
 
-# C. Configure XRDP
-# 1. Back up original config
-cp /etc/xrdp/xrdp.ini /etc/xrdp/xrdp.ini.bak
+# --- D. Configure XRDP (Reset every time) ---
+# We write a fresh config to ensure no corruption
+mv /etc/xrdp/xrdp.ini /etc/xrdp/xrdp.ini.bak 2>/dev/null
 
-# 2. Change Port
-sed -i 's/port=3389/port=$PORT_RDP/g' /etc/xrdp/xrdp.ini
+cat << 'XRDP' > /etc/xrdp/xrdp.ini
+[globals]
+bitmap_cache=yes
+bitmap_compression=yes
+port=$PORT_RDP
+crypt_level=low
+channel_code=1
+max_bpp=24
 
-# 3. Configure XRDP to use our internal VNC session (console mode)
-# This forces XRDP to connect to 127.0.0.1:5901 where our desktop lives
-# We modify the [xrdp1] section which is usually the default
-sed -i 's/name=Xorg/name=Desktop/g' /etc/xrdp/xrdp.ini
-sed -i 's/lib=libxup.so/lib=libvnc.so/g' /etc/xrdp/xrdp.ini
-sed -i 's/ip=127.0.0.1/ip=127.0.0.1/g' /etc/xrdp/xrdp.ini
-sed -i 's/port=-1/port=5901/g' /etc/xrdp/xrdp.ini
-sed -i 's/username=na/username=root/g' /etc/xrdp/xrdp.ini
-sed -i 's/password=ask/password=ask/g' /etc/xrdp/xrdp.ini
+[xrdp1]
+name=Desktop
+lib=libvnc.so
+username=root
+password=ask
+ip=127.0.0.1
+port=5901
+XRDP
 
-# Ensure keys exist
 if [ ! -f /etc/xrdp/rsakeys.ini ]; then
     xrdp-keygen xrdp auto
 fi
 
-# D. CREATE CUSTOM LAUNCHERS
+# --- E. Desktop & Taskbar ---
 mkdir -p /root/.local/share/applications/
-
-# 1. Firefox Launcher
-cat << 'DESKTOP' > /root/.local/share/applications/firefox-custom.desktop
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Firefox
-Comment=Browse the Web
-Exec=firefox --no-sandbox
-Icon=firefox
-Terminal=false
-StartupNotify=false
-DESKTOP
-
-# 2. Terminal Launcher
-cat << 'DESKTOP' > /root/.local/share/applications/terminal-custom.desktop
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Terminal
-Comment=Command Line
-Exec=xfce4-terminal --disable-server
-Icon=utilities-terminal
-Terminal=false
-StartupNotify=true
-DESKTOP
-
-# E. CONFIGURE TINT2 (Taskbar)
 mkdir -p /root/.config/tint2
-cat << 'TINT' > /root/.config/tint2/tint2rc
+
 # Tint2 Config
+cat << 'TINT' > /root/.config/tint2/tint2rc
 panel_position = bottom center horizontal
 panel_size = 100% 35
 panel_layer = top
@@ -161,8 +165,8 @@ panel_items = LTSC
 launcher_icon_theme = Adwaita
 launcher_padding = 8 0 8
 launcher_icon_size = 24
-launcher_item_app = /root/.local/share/applications/firefox-custom.desktop
-launcher_item_app = /root/.local/share/applications/terminal-custom.desktop
+launcher_item_app = /usr/share/applications/firefox.desktop
+launcher_item_app = /usr/share/applications/xfce4-terminal.desktop
 taskbar_mode = multi_desktop
 taskbar_padding = 6 0 6
 taskbar_active_background_id = 1
@@ -171,57 +175,49 @@ clock_font_color = #eeeeee 100
 clock_padding = 8 0 8
 TINT
 
-# F. STARTUP SCRIPT
+# XStartup Script
 cat << 'STARTUP' > /root/.vnc/xstartup
 #!/bin/sh
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
-
-# 1. Start DBus
 eval \$(dbus-launch --sh-syntax --exit-with-session)
-
-# 2. Start Window Manager
 xfwm4 --compositor=off &
-
-# 3. Start Tint2 Taskbar
 tint2 &
-
-# 4. Start Terminal & Firefox
 xfce4-terminal --disable-server --geometry=80x24 &
-
 while true; do
-    firefox --no-sandbox --width 1280 --height 680
-    sleep 3
+    if ! pgrep -x "firefox" > /dev/null; then
+        firefox --no-sandbox --width 1280 --height 680 &
+    fi
+    sleep 5
 done &
-
 tail -f /dev/null
 STARTUP
 chmod +x /root/.vnc/xstartup
 
-# G. Launch Services
-rm -rf /tmp/.X1-lock /tmp/.X11-unix
-mkdir -p /tmp/.X11-unix
-mkdir -p /var/run/xrdp
-mkdir -p /var/run/xrdp-sesman
+# --- F. START SERVICES ---
+echo "${GREEN}🟢 Starting VNC Server (Internal)...${NC}"
+# Double check locks one last time
+rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
 
-echo "🟢 Starting VNC Backend (Port 5901)..."
+# Start VNC
 vncserver :1 -geometry 1280x720 -depth 24 -localhost yes -rfbauth /root/.vnc/passwd
 
-echo "🟢 Starting RDP Server (Port $PORT_RDP)..."
-# We start xrdp directly. In proot, services command might fail.
-/usr/sbin/xrdp
-/usr/sbin/xrdp-sesman
+echo "⏳ Waiting for VNC..."
+sleep 2
 
-echo "✅ RDP Ready."
-# Keep container alive
-tail -f /var/log/xrdp.log
+echo "${GREEN}🟢 Starting RDP Services...${NC}"
+# Start Session Manager (Critical for RDP login to work)
+/usr/sbin/xrdp-sesman &
+
+# Start XRDP in foreground to keep the server alive
+/usr/sbin/xrdp --nodaemon
 EOF
 
 chmod +x "$ROOTFS/root/init.sh"
 
 # 6. Launch
-echo -e "${GREEN}[+] Launching RDP Server...${NC}"
-echo -e "${CYAN}Address:  (YOUR_IP):$PORT_RDP${NC}"
+echo -e "${GREEN}[+] Launching...${NC}"
+echo -e "${CYAN}IP:       (YOUR_IP):$PORT_RDP${NC}"
 echo -e "${CYAN}Username: root${NC}"
 echo -e "${CYAN}Password: $RDP_PASS${NC}"
 
