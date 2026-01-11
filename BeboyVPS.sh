@@ -28,7 +28,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 echo -e "${CYAN}=================================================${NC}"
-echo -e "${CYAN}   🚀 Desktop: Working Terminal Fix              ${NC}"
+echo -e "${CYAN}   🚀 Desktop: Clean Start (No Auto-Firefox)     ${NC}"
 echo -e "${CYAN}   🎯 Port selected: $PORT_NOVNC                 ${NC}"
 echo -e "${CYAN}   🔑 VNC Password:  $VNC_PASS                   ${NC}"
 echo -e "${CYAN}=================================================${NC}"
@@ -60,7 +60,6 @@ chmod -R 755 "$ROOTFS/bin" "$ROOTFS/usr/bin" "$ROOTFS/sbin" "$ROOTFS/usr/sbin" "
 echo "nameserver 8.8.8.8" > "$ROOTFS/etc/resolv.conf"
 
 # 5. Internal Setup Script
-# Variables like $PORT_NOVNC and $VNC_PASS are expanded here before writing the file
 cat << EOF > "$ROOTFS/root/init.sh"
 #!/bin/bash
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -90,12 +89,11 @@ if ! command -v tint2 &> /dev/null; then
 fi
 
 # B. Set VNC Password
-# Only set it if the directory doesn't exist or we want to overwrite it
 mkdir -p /root/.vnc
 echo "$VNC_PASS" | vncpasswd -f > /root/.vnc/passwd
 chmod 600 /root/.vnc/passwd
 
-# C. CREATE CUSTOM LAUNCHERS (Fixed Terminal)
+# C. CREATE CUSTOM LAUNCHERS
 mkdir -p /root/.local/share/applications/
 
 # 1. Firefox Launcher
@@ -111,7 +109,7 @@ Terminal=false
 StartupNotify=false
 DESKTOP
 
-# 2. Terminal Launcher (FIXED)
+# 2. Terminal Launcher
 cat << 'DESKTOP' > /root/.local/share/applications/terminal-custom.desktop
 [Desktop Entry]
 Version=1.0
@@ -141,14 +139,14 @@ border_color = #222222 100
 # Items
 panel_items = LTSC
 
-# Launcher (The Icons)
+# Launcher
 launcher_icon_theme = Adwaita
 launcher_padding = 8 0 8
 launcher_icon_size = 24
 launcher_item_app = /root/.local/share/applications/firefox-custom.desktop
 launcher_item_app = /root/.local/share/applications/terminal-custom.desktop
 
-# Taskbar (Open Windows)
+# Taskbar
 taskbar_mode = multi_desktop
 taskbar_padding = 6 0 6
 taskbar_active_background_id = 1
@@ -165,7 +163,6 @@ time1_format = %H:%M
 time1_font = Sans Bold 10
 clock_font_color = #eeeeee 100
 clock_padding = 8 0 8
-
 TINT
 
 # E. STARTUP SCRIPT
@@ -174,7 +171,7 @@ cat << 'STARTUP' > /root/.vnc/xstartup
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
 
-# 1. Start DBus (Crucial for Terminal)
+# 1. Start DBus
 eval \$(dbus-launch --sh-syntax --exit-with-session)
 
 # 2. Start Window Manager
@@ -183,14 +180,8 @@ xfwm4 --compositor=off &
 # 3. Start Tint2 Taskbar
 tint2 &
 
-# 4. PRE-LAUNCH TERMINAL (The "Just in Case" Fix)
+# 4. Open one Terminal so the screen isn't blank
 xfce4-terminal --disable-server --geometry=80x24 &
-
-# 5. Start Firefox Loop
-while true; do
-    firefox --no-sandbox --width 1280 --height 680
-    sleep 3
-done &
 
 tail -f /dev/null
 STARTUP
